@@ -9,12 +9,22 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Localizar el proyecto (package.json)
+      - name: Localizar el proyecto (package.json o el zip subido)
         id: loc
         run: |
-          P=$(find . -maxdepth 3 -name package.json -not -path "*/node_modules/*" -not -path "*/android/*" | head -n 1)
+          buscar() { find . -maxdepth 4 -name package.json -not -path "*/node_modules/*" -not -path "*/android/*" | head -n 1; }
+          P=$(buscar)
           if [ -z "$P" ]; then
-            echo "::error::No encontre package.json en el repositorio. Sube TODO el contenido de la carpeta estudio-pro (package.json, capacitor.config.json y la carpeta www)."
+            Z=$(ls -t ./*.zip 2>/dev/null | head -n 1)
+            if [ -n "$Z" ]; then
+              echo "No hay package.json suelto; descomprimiendo $Z"
+              mkdir -p _proyecto_zip
+              unzip -q -o "$Z" -d _proyecto_zip
+              P=$(buscar)
+            fi
+          fi
+          if [ -z "$P" ]; then
+            echo "::error::No encontre package.json. Sube el zip completo (estudio-pro-android.zip) a la raiz del repositorio o sube el contenido de la carpeta estudio-pro (package.json, capacitor.config.json y la carpeta www)."
             ls -R . | head -60
             exit 1
           fi
